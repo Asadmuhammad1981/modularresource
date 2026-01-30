@@ -29,9 +29,14 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-
+        
       - name: Create tfvars file from secret
         run: echo "${{ secrets.TFVARS }}" > terraform.tfvars
+      - name: Create tfvars file
+        run: |
+          cat <<'EOF' > terraform.tfvars
+          ${{ secrets.TFVARS }}
+          EOF
 
       - name: Terraform Plan
         id: plan
