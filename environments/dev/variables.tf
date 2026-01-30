@@ -7,7 +7,16 @@ variable "rgs" {
   }))
 }
 
-variable "networks" {}
+variable "networks" {
+  type = map(object({
+    # ... other fields
+    address_space = list(string) # Must be list(string)
+    subnets = list(object({
+      name             = string
+      address_prefixes = list(string) # Must be list(string)
+    }))
+  }))
+}
 variable "public_ips" {}
 variable "key_vaults" {
 
