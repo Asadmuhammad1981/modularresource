@@ -6,15 +6,18 @@ on:
   pull_request:
 
 permissions:
-  id-token: write # Required for OIDC
-  contents: read  # Required to checkout code
+  id-token: write
+  contents: read
 
 jobs:
   terraform:
     name: "Terraform Plan & Apply"
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # FIXED: Removed main.tf from the path
+        working-directory: ./environments/dev 
     env:
-      # OIDC variables for the AzureRM provider
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -27,22 +30,20 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Init
-        run: terraform init
-        
-      - name: Create tfvars file from secret
-        run: echo "${{ secrets.TFVARS }}" > terraform.tfvars
+      # This step creates the file INSIDE ./environments/dev
       - name: Create tfvars file
         run: |
           cat <<'EOF' > terraform.tfvars
           ${{ secrets.TFVARS }}
           EOF
 
+      - name: Terraform Init
+        run: terraform init
+        
       - name: Terraform Plan
         id: plan
         run: terraform plan -out=main.tfplan
 
       - name: Terraform Apply
-        # Only run apply on the main branch, not on Pull Requests
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve main.tfplan
