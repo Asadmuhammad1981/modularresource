@@ -47,3 +47,9 @@ module "compute" {
   source     = "../../modules/azurerm_compute"
   vms        = var.vms
 }
+
+module "bastion" {
+  depends_on = [module.network, module.public_ip]
+  source     = "../../modules/azurerm_bastion"
+  bastion    = var.bastion
+}
