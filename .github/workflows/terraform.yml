@@ -1,3 +1,18 @@
+name: Terraform Deployment - OIDC Only
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'environments/dev/**'
+      - 'modules/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'environments/dev/**'
+      - 'modules/**'
+
 permissions:
   id-token: write
   contents: read
@@ -9,32 +24,60 @@ jobs:
       run:
         working-directory: ./environments/dev
 
-    # Remove these ARM_* env variables
-    # env:
-    #   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-    #   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    #   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-    #   ARM_USE_OIDC: true
+    env:
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_USE_OIDC: true
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
-      
-      - name: Azure Login (OIDC)
-        uses: azure/login@v2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          terraform_version: '1.6.0'
+          terraform_wrapper: false
 
-      - name: Create tfvars file
+      - name: Configure OIDC
+        uses: actions/github-script@v6
+        id: oidc
+        with:
+          script: |
+            const token = await core.getIDToken('api://AzureADTokenExchange')
+            core.setOutput('id_token', token)
+          result-encoding: string
+
+      - name: Create terraform.tfvars file
         run: |
           cat <<'EOF' > terraform.tfvars
           ${{ secrets.TFVARS }}
           EOF
 
       - name: Terraform Init
+        id: init
         run: terraform init
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.id_token }}
 
-      # Rest of your steps...
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.id_token }}
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -out=main.tfplan
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.id_token }}
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve main.tfplan
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_OIDC_TOKEN: ${{ steps.oidc.outputs.id_token }}
