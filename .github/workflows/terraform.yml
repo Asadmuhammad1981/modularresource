@@ -53,7 +53,11 @@ jobs:
           cat <<'EOF' > terraform.tfvars
           ${{ secrets.TFVARS }}
           EOF
-
+      - name: Show files
+        run: |
+          pwd
+          ls -R
+          
       - name: Terraform Init
         id: init
         run: terraform init
