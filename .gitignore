@@ -10,8 +10,6 @@
 *.tfplan
 
 # Variable files with secrets (usually local overrides)
-*.tfvars
-*.tfvars.json
 
 # Override files (Terraform Cloud/Enterprise)
 override.tf
