@@ -20,7 +20,7 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
 
-      ✅ **THIS IS THE FIX**
+      **THIS IS THE FIX**
       
       - name: Azure Login (OIDC)
         uses: azure/login@v2
