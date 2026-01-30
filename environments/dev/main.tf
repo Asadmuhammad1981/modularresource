@@ -50,6 +50,8 @@ module "compute" {
 
 module "bastion" {
   depends_on = [module.network, module.public_ip]
-  source     = "../../modules/azurerm_bastion"
+  source     = "../../modules/azurerm_bastion_server"
   bastion    = var.bastion
+  rg_name    = "rg-asad-dev-01"
+  location   = "centralindia"
 }

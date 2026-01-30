@@ -9,11 +9,13 @@ variable "rgs" {
 
 variable "networks" {
   type = map(object({
-    # ... other fields
-    address_space = list(string) # Must be list(string)
+    name          = string
+    location      = string
+    rg_name       = string
+    address_space = list(string)
     subnets = list(object({
       name             = string
-      address_prefixes = list(string) # Must be list(string)
+      address_prefixes = list(string)
     }))
   }))
 }
