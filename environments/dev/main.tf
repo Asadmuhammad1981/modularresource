@@ -3,10 +3,16 @@ module "resource_group" {
   rgs    = var.rgs
 }
 
-module "network" {
+module "virtual_networks" {
   depends_on = [module.resource_group]
-  source     = "../../modules/azurerm_network"
-  networks   = var.networks
+  source     = "../../modules/azurerm_virtual_network"
+  vnet       = var.vnet
+}
+
+module "subnets" {
+  depends_on = [module.resource_group, module.virtual_networks]
+  source     = "../../modules/azurerm_subnet"
+  subnets    = var.subnets
 }
 
 module "public_ip" {
@@ -43,15 +49,15 @@ module "sql_db" {
 
 
 module "compute" {
-  depends_on = [module.network, module.public_ip, module.key_vault, module.resource_group]
+  depends_on = [module.subnets, module.virtual_networks, module.public_ip, module.key_vault, module.resource_group]
   source     = "../../modules/azurerm_compute"
   vms        = var.vms
 }
 
 module "bastion" {
-  depends_on = [module.network, module.public_ip]
+  depends_on = [module.subnets, module.virtual_networks, module.public_ip, module.resource_group]
   source     = "../../modules/azurerm_bastion_server"
   bastion    = var.bastion
-  rg_name    = "rg-asad-dev-01"
-  location   = "centralindia"
+  # bastion_subnet_id = module.subnets.subnet_ids["AzureBastionSubnet"]
+  # bastion_pip_id    = module.public_ip.public_ip_ids["pip-dev-bastion-01"]
 }
